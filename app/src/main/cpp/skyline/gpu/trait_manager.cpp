@@ -6,7 +6,7 @@
 
 namespace skyline::gpu {
     TraitManager::TraitManager(const DeviceFeatures2 &deviceFeatures2, DeviceFeatures2 &enabledFeatures2, const std::vector<vk::ExtensionProperties> &deviceExtensions, std::vector<std::array<char, VK_MAX_EXTENSION_NAME_SIZE>> &enabledExtensions, const DeviceProperties2 &deviceProperties2) : quirks(deviceProperties2.get<vk::PhysicalDeviceProperties2>().properties, deviceProperties2.get<vk::PhysicalDeviceDriverProperties>()) {
-        bool hasCustomBorderColorExt{}, hasShaderAtomicInt64Ext{}, hasShaderFloat16Int8Ext{}, hasShaderDemoteToHelperExt, hasVertexAttributeDivisorExt, hasProvokingVertexExt{};
+        bool hasCustomBorderColorExt{}, hasShaderAtomicInt64Ext{}, hasShaderFloat16Int8Ext{}, hasShaderDemoteToHelperExt{}, hasVertexAttributeDivisorExt{}, hasProvokingVertexExt{}, hasPrimitiveTopologyListRestartExt{};
         bool supportsUniformBufferStandardLayout{}; // We require VK_KHR_uniform_buffer_standard_layout but assume it is implicitly supported even when not present
 
         for (auto &extension : deviceExtensions) {
@@ -42,6 +42,7 @@ namespace skyline::gpu {
                 EXT_SET("VK_KHR_shader_float16_int8", hasShaderFloat16Int8Ext);
                 EXT_SET("VK_KHR_shader_float_controls", supportsFloatControls);
                 EXT_SET("VK_KHR_uniform_buffer_standard_layout", supportsUniformBufferStandardLayout);
+                EXT_SET("VK_EXT_primitive_topology_list_restart", hasPrimitiveTopologyListRestartExt);
             }
 
             #undef EXT_SET
@@ -108,6 +109,13 @@ namespace skyline::gpu {
         } else {
             enabledFeatures2.unlink<vk::PhysicalDeviceUniformBufferStandardLayoutFeatures>();
             Logger::Warn("Cannot find VK_KHR_uniform_buffer_standard_layout, assuming implicit support");
+        }
+
+        if (hasPrimitiveTopologyListRestartExt) {
+            FEAT_SET(vk::PhysicalDevicePrimitiveTopologyListRestartFeaturesEXT, primitiveTopologyListRestart, supportsTopologyListRestart)
+            FEAT_SET(vk::PhysicalDevicePrimitiveTopologyListRestartFeaturesEXT, primitiveTopologyPatchListRestart, supportsTopologyPatchListRestart)
+        } else {
+            enabledFeatures2.unlink<vk::PhysicalDevicePrimitiveTopologyListRestartFeaturesEXT>();
         }
 
         #undef FEAT_SET
